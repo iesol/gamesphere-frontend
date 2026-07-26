@@ -1,0 +1,3 @@
+window.__ENV__ = {
+  GOOGLE_CLIENT_ID: '${GOOGLE_CLIENT_ID}',
+};
