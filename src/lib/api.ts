@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { config } from '../config';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: config.apiUrl as string,
 });
 
 export function createMatchSse(matchId: string): EventSource {
