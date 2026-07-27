@@ -71,9 +71,21 @@ export default function MatchScore() {
   useEffect(() => {
     if (!id) return;
     const sse = createMatchSse(id);
-    sse.addEventListener('ball', () => {
+    const refresh = () => {
       queryClient.invalidateQueries({ queryKey: ['cricket-state', id] });
       queryClient.invalidateQueries({ queryKey: ['cricket-events', id] });
+    };
+    sse.addEventListener('ball', refresh);
+    sse.addEventListener('state_update', refresh);
+    sse.addEventListener('innings_end', () => {
+      queryClient.invalidateQueries({ queryKey: ['cricket-state', id] });
+      queryClient.invalidateQueries({ queryKey: ['cricket-events', id] });
+      queryClient.invalidateQueries({ queryKey: ['match', id] });
+    });
+    sse.addEventListener('match_end', () => {
+      queryClient.invalidateQueries({ queryKey: ['cricket-state', id] });
+      queryClient.invalidateQueries({ queryKey: ['cricket-events', id] });
+      queryClient.invalidateQueries({ queryKey: ['match', id] });
     });
     return () => sse.close();
   }, [id, queryClient]);

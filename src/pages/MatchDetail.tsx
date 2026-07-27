@@ -57,11 +57,12 @@ export default function MatchDetail() {
   });
 
   useEffect(() => {
-    if (!id || match?.state !== 'in_progress') return;
+    if (!id) return;
     const sse = createMatchSse(id);
     sse.addEventListener('ball', (e: any) => {
       const d = JSON.parse(e.data);
       queryClient.invalidateQueries({ queryKey: ['cricket-state', id] });
+      queryClient.invalidateQueries({ queryKey: ['cricket-events', id] });
       let label = `${d.runsScored}`;
       if (d.wicketType && d.wicketType !== 'none') label = 'W';
       if (d.extrasType === 'wide') label = 'WD';
@@ -70,8 +71,24 @@ export default function MatchDetail() {
       setBallFlashKey((k) => k + 1);
       setTimeout(() => setBallFlashLabel(null), 650);
     });
+    sse.addEventListener('state_update', () => {
+      queryClient.invalidateQueries({ queryKey: ['cricket-state', id] });
+    });
+    sse.addEventListener('innings_end', () => {
+      queryClient.invalidateQueries({ queryKey: ['cricket-state', id] });
+      queryClient.invalidateQueries({ queryKey: ['cricket-events', id] });
+      queryClient.invalidateQueries({ queryKey: ['match', id] });
+    });
+    sse.addEventListener('match_end', () => {
+      queryClient.invalidateQueries({ queryKey: ['cricket-state', id] });
+      queryClient.invalidateQueries({ queryKey: ['cricket-events', id] });
+      queryClient.invalidateQueries({ queryKey: ['match', id] });
+    });
+    sse.addEventListener('match_start', () => {
+      queryClient.invalidateQueries({ queryKey: ['match', id] });
+    });
     return () => sse.close();
-  }, [id, match?.state, queryClient]);
+  }, [id, queryClient]);
 
   const sportType = tournament?.sportType;
 
