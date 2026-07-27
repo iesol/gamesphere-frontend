@@ -216,20 +216,19 @@ export default function TournamentDetail() {
     return pickablePlayers.filter((u: any) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
   }, [pickablePlayers, searchQuery]);
 
-  const isAdmin = myRole?.roles?.some((r: string) => r === 'org_admin' || r === 'super_admin');
-  if (!tournament) return <Box sx={{ p: 4 }}><Typography>Loading...</Typography></Box>;
-
   const matchFields = useMemo(() => {
     if (!matchFormConfig?.fields || !teams) return matchFormConfig?.fields;
     const teamOptions = teams.map((t: any) => ({ label: t.name, value: t.id }));
     return matchFormConfig.fields.map((f: any) => {
       if (f.key === 'homeTeamId' || f.key === 'awayTeamId') {
-        const otherKey = f.key === 'homeTeamId' ? 'awayTeamId' : 'homeTeamId';
         return { ...f, options: teamOptions };
       }
       return f;
     });
   }, [matchFormConfig, teams]);
+
+  const isAdmin = myRole?.roles?.some((r: string) => r === 'org_admin' || r === 'super_admin');
+  if (!tournament) return <Box sx={{ p: 4 }}><Typography>Loading...</Typography></Box>;
 
   return (
     <Box sx={{ p: 4, maxWidth: 900, mx: 'auto' }}>
