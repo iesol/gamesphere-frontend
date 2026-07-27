@@ -46,6 +46,14 @@ export default function AdminUsers() {
   });
 
   const isSuperAdmin = myRole?.roles?.includes('super_admin');
+  const isOrgAdmin = myRole?.roles?.includes('org_admin');
+  const isAdmin = isSuperAdmin || isOrgAdmin;
+
+  const canManageUser = (userRoles: string[] = []) => {
+    if (!isAdmin) return false;
+    if (userRoles.includes('super_admin') && !isSuperAdmin) return false;
+    return true;
+  };
 
   const addUserMutation = useMutation({
     mutationFn: (data: any) => api.post('/users', { ...data, roles: selectedRoles }),
@@ -147,7 +155,7 @@ export default function AdminUsers() {
                 {(u.roles || []).map((r: string) => (
                   <Chip key={r} label={r} size="small" variant="outlined" />
                 ))}
-                {isSuperAdmin && (
+                {canManageUser(u.roles || []) && (
                   <>
                     <Button size="small" variant="text" onClick={() => { setEditUser(u); setEditRoles([...u.roles]); }}>Edit</Button>
                     <Button size="small" color="error" variant="text" onClick={() => { if (confirm(`Remove ${u.name} from org?`)) removeMutation.mutate(u.id); }}>Remove</Button>
@@ -166,7 +174,7 @@ export default function AdminUsers() {
             {ROLE_OPTIONS.map((opt) => (
               <FormControlLabel
                 key={opt.value}
-                control={<Checkbox checked={editRoles.includes(opt.value)} onChange={() => setEditRoles((prev) => prev.includes(opt.value) ? prev.filter((r) => r !== opt.value) : [...prev, opt.value])} />}
+                control={<Checkbox checked={editRoles.includes(opt.value)} onChange={() => setEditRoles((prev) => prev.includes(opt.value) ? prev.filter((r) => r !== opt.value) : [...prev, opt.value])} disabled={opt.value === 'super_admin' && !isSuperAdmin} />}
                 label={opt.label}
               />
             ))}
@@ -174,7 +182,7 @@ export default function AdminUsers() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditUser(null)}>Cancel</Button>
-          <Button variant="contained" onClick={() => updateRolesMutation.mutate({ userId: editUser.id, roles: editRoles })}>Save</Button>
+          <Button variant="contained" onClick={() => updateRolesMutation.mutate({ userId: editUser.id, roles: editRoles })} disabled={editUser?.roles?.includes('super_admin') && !isSuperAdmin}>Save</Button>
         </DialogActions>
       </Dialog>
     </Box>
