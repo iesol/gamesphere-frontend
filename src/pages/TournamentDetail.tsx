@@ -203,9 +203,9 @@ export default function TournamentDetail() {
   const unassignedPlayers = registeredPlayers.filter((p: any) => !allTeamUserIds.has(p.userId));
 
   const pickableMembers = useMemo(() => {
-    if (!members || !memberPicker) return [];
-    return members.filter((u: any) => !allTeamUserIds.has(u.id));
-  }, [members, memberPicker, allTeamUserIds]);
+    if (!memberPicker) return [];
+    return registeredPlayers.filter((p: any) => !allTeamUserIds.has(p.userId));
+  }, [memberPicker, allTeamUserIds, registeredPlayers]);
 
   const pickablePlayers = useMemo(() => {
     if (!members || !playerPicker) return [];
