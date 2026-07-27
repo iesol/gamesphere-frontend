@@ -15,11 +15,6 @@ export default function Dashboard() {
     queryFn: () => api.get('/tournaments').then((r) => r.data),
   });
 
-  const { data: gameTypes } = useQuery({
-    queryKey: ['game-types'],
-    queryFn: () => api.get('/game-types').then((r) => r.data),
-  });
-
   if (!activeOrg) {
     return (
       <Box sx={{ p: 4, maxWidth: 700, mx: 'auto', textAlign: 'center', mt: 8 }}>
@@ -45,7 +40,6 @@ export default function Dashboard() {
 
       <Box sx={{ display: 'flex', gap: 3, mb: 5 }}>
         {statCard('Total Tournaments', total, '#1e293b')}
-        {statCard('Game Types', gameTypes?.length || 0, '#2563eb')}
       </Box>
 
       <Card>

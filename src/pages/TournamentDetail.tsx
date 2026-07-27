@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DynamicForm from 'react-dynoform';
-import { Box, Card, CardHeader, Typography, Button, List, ListItem, ListItemText, Chip, Stack, Alert, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Box, Card, CardHeader, Typography, Button, List, ListItem, ListItemText, Chip, Stack, Alert, TextField } from '@mui/material';
 import api from '../lib/api';
 
 export default function TournamentDetail() {
@@ -13,7 +13,6 @@ export default function TournamentDetail() {
   const [showTeamForm, setShowTeamForm] = useState(false);
   const [showMatchForm, setShowMatchForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [matchForm, setMatchForm] = useState({ homeTeamId: '', awayTeamId: '', round: 1 });
   const [autoGenTeamCount, setAutoGenTeamCount] = useState(2);
   const [showAutoGenDialog, setShowAutoGenDialog] = useState(false);
   const [importMsg, setImportMsg] = useState('');
@@ -53,6 +52,11 @@ export default function TournamentDetail() {
   const { data: teamFormConfig } = useQuery({
     queryKey: ['form-config', 'add-team', activeOrgId],
     queryFn: () => api.get(`/form-configs/add-team${activeOrgId ? `?orgId=${activeOrgId}` : ''}`).then((r) => r.data),
+  });
+
+  const { data: matchFormConfig } = useQuery({
+    queryKey: ['form-config', 'add-match', activeOrgId],
+    queryFn: () => api.get(`/form-configs/add-match${activeOrgId ? `?orgId=${activeOrgId}` : ''}`).then((r) => r.data),
   });
 
   const updateMutation = useMutation({
@@ -215,7 +219,17 @@ export default function TournamentDetail() {
   const isAdmin = myRole?.roles?.some((r: string) => r === 'org_admin' || r === 'super_admin');
   if (!tournament) return <Box sx={{ p: 4 }}><Typography>Loading...</Typography></Box>;
 
-  const availableTeams = teams?.filter((t: any) => t.id !== matchForm.homeTeamId) || [];
+  const matchFields = useMemo(() => {
+    if (!matchFormConfig?.fields || !teams) return matchFormConfig?.fields;
+    const teamOptions = teams.map((t: any) => ({ label: t.name, value: t.id }));
+    return matchFormConfig.fields.map((f: any) => {
+      if (f.key === 'homeTeamId' || f.key === 'awayTeamId') {
+        const otherKey = f.key === 'homeTeamId' ? 'awayTeamId' : 'homeTeamId';
+        return { ...f, options: teamOptions };
+      }
+      return f;
+    });
+  }, [matchFormConfig, teams]);
 
   return (
     <Box sx={{ p: 4, maxWidth: 900, mx: 'auto' }}>
@@ -287,25 +301,17 @@ export default function TournamentDetail() {
         <Box sx={{ p: 3, pt: 0 }}>
           {showMatchForm && isAdmin && teams?.length >= 2 && (
             <Box sx={{ mb: 2, p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
-              <Stack spacing={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Home Team</InputLabel>
-                  <Select value={matchForm.homeTeamId} label="Home Team" onChange={(e) => setMatchForm({ ...matchForm, homeTeamId: e.target.value })}>
-                    {teams.map((t: any) => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Away Team</InputLabel>
-                  <Select value={matchForm.awayTeamId} label="Away Team" onChange={(e) => setMatchForm({ ...matchForm, awayTeamId: e.target.value })}>
-                    {availableTeams.map((t: any) => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-                <TextField label="Round" type="number" size="small" value={matchForm.round} onChange={(e) => setMatchForm({ ...matchForm, round: parseInt(e.target.value) || 1 })} />
-                <Button variant="contained" disabled={!matchForm.homeTeamId || !matchForm.awayTeamId || addMatchMutation.isPending}
-                  onClick={() => addMatchMutation.mutate(matchForm)}>
-                  Add Match
-                </Button>
-              </Stack>
+              {matchFields ? (
+                <div className="dynoform">
+                  <DynamicForm
+                    fields={matchFields}
+                    onSubmit={(data) => addMatchMutation.mutate(data)}
+                    submitButtonLabel="Add Match"
+                  />
+                </div>
+              ) : (
+                <Typography color="text.secondary" variant="body2">Loading form...</Typography>
+              )}
             </Box>
           )}
           {(!matches || matches.length === 0) && <Typography color="text.secondary" variant="body2">No matches yet.</Typography>}

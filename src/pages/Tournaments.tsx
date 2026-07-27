@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Box, Card, CardHeader, Typography, Button, List, ListItem, ListItemText, Chip, Stack, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import DynamicForm from 'react-dynoform';
+import { Box, Card, CardHeader, Typography, Button, List, ListItem, ListItemText, Chip, Stack } from '@mui/material';
 import api from '../lib/api';
 
 export default function Tournaments() {
@@ -16,9 +17,9 @@ export default function Tournaments() {
   });
   const isAdmin = myRole?.roles?.some((r: string) => r === 'org_admin' || r === 'super_admin');
 
-  const [form, setForm] = useState({
-    name: '', sportType: 'cricket', format: 'single_elimination',
-    startDate: '', venueAddress: '', maxParticipants: 200,
+  const { data: formConfig } = useQuery({
+    queryKey: ['form-config', 'add-tournament'],
+    queryFn: () => api.get('/form-configs/add-tournament').then((r) => r.data),
   });
 
   const { data: tournaments, isLoading } = useQuery({
@@ -27,11 +28,13 @@ export default function Tournaments() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => api.post('/tournaments', data),
+    mutationFn: (data: any) => {
+      const { venueAddress, ...rest } = data;
+      return api.post('/tournaments', { ...rest, settings: venueAddress ? { venueAddress } : {} });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tournaments'] });
       setShowForm(false);
-      setForm({ name: '', sportType: 'cricket', format: 'single_elimination', startDate: '', venueAddress: '', maxParticipants: 200 });
     },
   });
 
@@ -57,39 +60,19 @@ export default function Tournaments() {
         <Card sx={{ mb: 4 }}>
           <CardHeader title="Create Tournament" titleTypographyProps={{ variant: 'h6' }} />
           <Box sx={{ p: 3, pt: 0 }}>
-            <Stack spacing={2}>
-              <TextField label="Tournament Name" fullWidth size="small" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-              <FormControl fullWidth size="small">
-                <InputLabel>Sport Type</InputLabel>
-                <Select value={form.sportType} label="Sport Type" onChange={(e) => setForm({ ...form, sportType: e.target.value })}>
-                  <MenuItem value="cricket">Cricket</MenuItem>
-                  <MenuItem value="football">Football</MenuItem>
-                  <MenuItem value="basketball">Basketball</MenuItem>
-                  <MenuItem value="chess">Chess</MenuItem>
-                  <MenuItem value="badminton">Badminton</MenuItem>
-                  <MenuItem value="tennis">Tennis</MenuItem>
-                  <MenuItem value="volleyball">Volleyball</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl fullWidth size="small">
-                <InputLabel>Format</InputLabel>
-                <Select value={form.format} label="Format" onChange={(e) => setForm({ ...form, format: e.target.value })}>
-                  <MenuItem value="single_elimination">Single Elimination</MenuItem>
-                  <MenuItem value="double_elimination">Double Elimination</MenuItem>
-                  <MenuItem value="round_robin">Round Robin</MenuItem>
-                  <MenuItem value="league">League</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField label="Start Date & Time" type="datetime-local" fullWidth size="small" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
-              <TextField label="Venue / Address (optional)" fullWidth size="small" value={form.venueAddress} onChange={(e) => setForm({ ...form, venueAddress: e.target.value })} />
-              <TextField label="Max Participants" type="number" fullWidth size="small" value={form.maxParticipants} onChange={(e) => setForm({ ...form, maxParticipants: parseInt(e.target.value) || 0 })} />
-              <Button variant="contained" fullWidth disabled={!form.name || createMutation.isPending}
-                onClick={() => createMutation.mutate({ ...form, settings: { venueAddress: form.venueAddress } })}>
-                Create
-              </Button>
-              {createMutation.isSuccess && <Typography variant="body2" color="success.main">Tournament created!</Typography>}
-              {createMutation.isError && <Typography variant="body2" color="error.main">Failed to create tournament</Typography>}
-            </Stack>
+            {formConfig ? (
+              <div className="dynoform">
+                <DynamicForm
+                  fields={formConfig.fields}
+                  onSubmit={(data) => createMutation.mutate(data)}
+                  submitButtonLabel="Create"
+                />
+              </div>
+            ) : (
+              <Typography color="text.secondary" variant="body2">Loading form...</Typography>
+            )}
+            {createMutation.isSuccess && <Typography variant="body2" color="success.main" sx={{ mt: 2 }}>Tournament created!</Typography>}
+            {createMutation.isError && <Typography variant="body2" color="error.main" sx={{ mt: 2 }}>Failed to create tournament</Typography>}
           </Box>
         </Card>
       )}
