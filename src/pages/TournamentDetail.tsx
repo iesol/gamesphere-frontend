@@ -125,23 +125,10 @@ export default function TournamentDetail() {
     mutationFn: (file: File) => {
       const fd = new FormData();
       fd.append('file', file);
-      return api.post('/import/users', fd).then((r) => r.data);
+      return api.post(`/tournaments/${id}/import-players`, fd).then((r) => r.data);
     },
-    onSuccess: async (data: any) => {
-      setImportMsg(`Imported: ${data.imported}, Skipped: ${data.skipped}${data.errors?.length ? `, Errors: ${data.errors.length}` : ''}`);
-      const membersRes = await api.get('/users');
-      const allMembers = membersRes.data;
-      const existingPlayers = tournament?.settings?.players || [];
-      const existingIds = existingPlayers.map((p: any) => p.userId);
-      const newPlayers = allMembers.filter((u: any) => !existingIds.includes(u.id));
-      if (newPlayers.length > 0) {
-        const updatedPlayers = [
-          ...existingPlayers,
-          ...newPlayers.map((u: any) => ({ userId: u.id, name: u.name, email: u.email, position: '', skillLevel: 3 })),
-        ];
-        await api.patch(`/tournaments/${id}`, { settings: { ...tournament?.settings, players: updatedPlayers } });
-      }
-      queryClient.invalidateQueries({ queryKey: ['org-users'] });
+    onSuccess: (data: any) => {
+      setImportMsg(`Imported: ${data.imported}, Total: ${data.total}`);
       queryClient.invalidateQueries({ queryKey: ['tournament', id] });
     },
     onError: () => setImportMsg('Import failed'),
