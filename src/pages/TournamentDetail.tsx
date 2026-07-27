@@ -12,10 +12,15 @@ export default function TournamentDetail() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showTeamForm, setShowTeamForm] = useState(false);
   const [showMatchForm, setShowMatchForm] = useState(false);
+  const [showNewPlayerForm, setShowNewPlayerForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [autoGenTeamCount, setAutoGenTeamCount] = useState(2);
   const [showAutoGenDialog, setShowAutoGenDialog] = useState(false);
   const [importMsg, setImportMsg] = useState('');
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerEmail, setNewPlayerEmail] = useState('');
+  const [newPlayerPosition, setNewPlayerPosition] = useState('');
+  const [newPlayerSkillLevel, setNewPlayerSkillLevel] = useState(3);
   const fileRef = useRef<HTMLInputElement>(null);
   const activeOrgId = localStorage.getItem('gamesphere_org_id');
 
@@ -159,6 +164,22 @@ export default function TournamentDetail() {
       return api.patch(`/tournaments/${id}`, { settings: { ...tournament.settings, players } });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tournament', id] }),
+  });
+
+  const onboardPlayerMutation = useMutation({
+    mutationFn: async (data: { name: string; email: string; position: string; skillLevel: number }) => {
+      const activeOrgId = localStorage.getItem('gamesphere_org_id');
+      const user = await api.post('/users', { email: data.email, name: data.name, roles: ['player'] }).then((r) => r.data);
+      const players = tournament?.settings?.players || [];
+      if (!players.find((p: any) => p.userId === user.id)) {
+        players.push({ userId: user.id, name: data.name, email: data.email, position: data.position, skillLevel: data.skillLevel });
+        await api.patch(`/tournaments/${id}`, { settings: { ...tournament.settings, players } });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament', id] });
+      setShowNewPlayerForm(false);
+    },
   });
 
   const [memberPicker, setMemberPicker] = useState<{ teamId: string; teamName: string; existingUserIds: string[] } | null>(null);
@@ -447,20 +468,48 @@ export default function TournamentDetail() {
         <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300 }}>
           <Box sx={{ bgcolor: 'white', borderRadius: 2, p: 3, minWidth: 350, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Register Players</Typography>
-            <TextField placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} size="small" fullWidth sx={{ mb: 2 }} autoFocus />
-            {filteredPlayers.length === 0 && <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>No matching users.</Typography>}
-            <Box sx={{ flex: 1, overflowY: 'auto', maxHeight: 400 }}>
-              <List disablePadding>
-                {filteredPlayers.map((u: any) => (
-                  <ListItem key={u.id} divider secondaryAction={
-                    <Button size="small" variant="outlined" onClick={() => { addPlayerMutation.mutate(u); }}>Register</Button>
-                  }>
-                    <ListItemText primary={u.name} secondary={u.email} />
-                  </ListItem>
-                ))}
-              </List>
-            </Box>
-            <Button onClick={() => { setPlayerPicker(false); setSearchQuery(''); }} sx={{ mt: 2 }}>Close</Button>
+            {!showNewPlayerForm && (
+              <>
+                <Stack direction="row" spacing={1} sx={{ mb: 2, justifyContent: 'space-between' }}>
+                  <TextField placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} size="small" fullWidth autoFocus />
+                  <Button size="small" variant="outlined" onClick={() => { setShowNewPlayerForm(true); setSearchQuery(''); }}>Onboard New Player</Button>
+                </Stack>
+                {filteredPlayers.length === 0 && <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>No matching users.</Typography>}
+                <Box sx={{ flex: 1, overflowY: 'auto', maxHeight: 400 }}>
+                  <List disablePadding>
+                    {filteredPlayers.map((u: any) => (
+                      <ListItem key={u.id} divider secondaryAction={
+                        <Button size="small" variant="outlined" onClick={() => { addPlayerMutation.mutate(u); }}>Register</Button>
+                      }>
+                        <ListItemText primary={u.name} secondary={u.email} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+                <Button onClick={() => { setPlayerPicker(false); setSearchQuery(''); }} sx={{ mt: 2 }}>Close</Button>
+              </>
+            )}
+            {showNewPlayerForm && (
+              <>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Create a new player and register them to this tournament</Typography>
+                <Stack spacing={2} sx={{ mb: 2 }}>
+                  <TextField label="Name" size="small" fullWidth value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} autoFocus />
+                  <TextField label="Email" type="email" size="small" fullWidth value={newPlayerEmail} onChange={(e) => setNewPlayerEmail(e.target.value)} />
+                  <TextField label="Position" size="small" fullWidth value={newPlayerPosition} onChange={(e) => setNewPlayerPosition(e.target.value)} placeholder="e.g., Batsman, Bowler, All-rounder, Wicketkeeper" />
+                  <TextField label="Skill Level (1-5)" type="number" size="small" fullWidth value={newPlayerSkillLevel} onChange={(e) => setNewPlayerSkillLevel(Math.min(5, Math.max(1, parseInt(e.target.value) || 1)))} />
+                </Stack>
+                <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+                  <Button onClick={() => { setShowNewPlayerForm(false); setNewPlayerName(''); setNewPlayerEmail(''); setNewPlayerPosition(''); setNewPlayerSkillLevel(3); }}>Cancel</Button>
+                  <Button variant="contained" onClick={() => {
+                    if (newPlayerName && newPlayerEmail) {
+                      onboardPlayerMutation.mutate({ name: newPlayerName, email: newPlayerEmail, position: newPlayerPosition, skillLevel: newPlayerSkillLevel });
+                    }
+                  }} disabled={onboardPlayerMutation.isPending || !newPlayerName || !newPlayerEmail}>
+                    {onboardPlayerMutation.isPending ? 'Creating...' : 'Create & Register'}
+                  </Button>
+                </Stack>
+              </>
+            )}
           </Box>
         </Box>
       )}
