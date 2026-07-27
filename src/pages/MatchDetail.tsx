@@ -117,7 +117,9 @@ export default function MatchDetail() {
 
   const userLookup = Object.fromEntries((orgUsers || []).map((u: any) => [u.id, u]));
   const isAdminOrVolunteer = myRole?.roles?.some((r: string) => r === 'org_admin' || r === 'volunteer' || r === 'super_admin');
-  const isLocked = !!match?.scoredBy;
+  const currentUserId = myRole?.userId;
+  const lockIsStale = match?.lockedAt && Date.now() - new Date(match.lockedAt).getTime() > 60000;
+  const isLockedByOther = !!match?.scoredBy && match.scoredBy !== currentUserId && !lockIsStale;
   const homeTeam = teams?.find((t: any) => t.id === match?.homeTeamId);
   const awayTeam = teams?.find((t: any) => t.id === match?.awayTeamId);
 
@@ -318,7 +320,7 @@ export default function MatchDetail() {
       {cricketState && inningsData.length > 0 && (
         <Card sx={{ mb: 4 }}>
           <CardHeader title={match?.state === 'completed' ? 'Scorecard' : 'Live Score'} titleTypographyProps={{ variant: 'h6' }}
-            action={match.state === 'in_progress' && isAdminOrVolunteer && (isLocked && match.scoredBy ? <Alert severity="warning" sx={{ py: 0 }}>Being scored by another user</Alert> : <Button variant="contained" onClick={() => navigate(`/matches/${id}/score`)}>Update Score</Button>)}
+            action={match.state === 'in_progress' && isAdminOrVolunteer && (isLockedByOther ? <Alert severity="warning" sx={{ py: 0 }}>Being scored by another user</Alert> : <Button variant="contained" onClick={() => navigate(`/matches/${id}/score`)}>Update Score</Button>)}
           />
           <Box sx={{ p: 3, pt: 0 }}>
             {match?.result?.winner && (

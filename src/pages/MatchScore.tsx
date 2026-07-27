@@ -65,7 +65,13 @@ export default function MatchScore() {
 
   useEffect(() => {
     api.post(`/matches/${id}/lock`).catch(() => {});
-    return () => { api.delete(`/matches/${id}/lock`).catch(() => {}); };
+    const hb = setInterval(() => {
+      api.post(`/matches/${id}/lock/heartbeat`).catch(() => {});
+    }, 20000);
+    return () => {
+      clearInterval(hb);
+      api.delete(`/matches/${id}/lock`).catch(() => {});
+    };
   }, [id]);
 
   useEffect(() => {
