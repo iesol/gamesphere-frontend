@@ -7,7 +7,8 @@ const api = axios.create({
 
 export function createMatchSse(matchId: string): EventSource {
   const token = localStorage.getItem('gamesphere_token');
-  const url = `/api/sse/${matchId}?token=${token}`;
+  const base = config.apiUrl.replace(/\/+$/, '');
+  const url = `${base}/sse/${matchId}?token=${token}`;
   return new EventSource(url);
 }
 
