@@ -452,7 +452,7 @@ export default function TournamentDetail() {
               <List disablePadding>
                 {filteredMembers.map((u: any) => (
                   <ListItem key={u.id} divider secondaryAction={
-                    <Button size="small" variant="outlined" onClick={() => { addMemberMutation.mutate({ teamId: memberPicker.teamId, userId: u.id }); }}>Add</Button>
+                    <Button size="small" variant="outlined" onClick={() => { addMemberMutation.mutate({ teamId: memberPicker.teamId, userId: u.userId }); }}>Add</Button>
                   }>
                     <ListItemText primary={u.name} secondary={u.email} />
                   </ListItem>
