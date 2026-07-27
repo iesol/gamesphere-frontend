@@ -87,6 +87,12 @@ export default function MatchDetail() {
     sse.addEventListener('match_start', () => {
       queryClient.invalidateQueries({ queryKey: ['match', id] });
     });
+    sse.addEventListener('score_lock', () => {
+      queryClient.invalidateQueries({ queryKey: ['match', id] });
+    });
+    sse.addEventListener('score_unlock', () => {
+      queryClient.invalidateQueries({ queryKey: ['match', id] });
+    });
     return () => sse.close();
   }, [id, queryClient]);
 

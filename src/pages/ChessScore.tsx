@@ -56,6 +56,12 @@ export default function ChessScore() {
     sse.addEventListener('move', () => {
       queryClient.invalidateQueries({ queryKey: ['chess-state', id] });
     });
+    sse.addEventListener('score_lock', () => {
+      queryClient.invalidateQueries({ queryKey: ['match', id] });
+    });
+    sse.addEventListener('score_unlock', () => {
+      queryClient.invalidateQueries({ queryKey: ['match', id] });
+    });
     return () => sse.close();
   }, [id, queryClient]);
 
