@@ -65,8 +65,10 @@ export default function ChessScore() {
     return () => sse.close();
   }, [id, queryClient]);
 
+  const currentUserId = myRole?.userId;
+  const lockIsStale = match?.lockedAt && Date.now() - new Date(match.lockedAt).getTime() > 60000;
+  const isLockedByOther = !!match?.scoredBy && match.scoredBy !== currentUserId && !lockIsStale;
   const isAdminOrVolunteer = myRole?.roles?.some((r: string) => r === 'org_admin' || r === 'volunteer' || r === 'super_admin');
-  const isLocked = !!match?.scoredBy;
   const homeTeam = teams?.find((t: any) => t.id === match?.homeTeamId);
   const awayTeam = teams?.find((t: any) => t.id === match?.awayTeamId);
 
@@ -137,10 +139,10 @@ export default function ChessScore() {
                 size="small"
                 fullWidth
                 placeholder="e.g. D4, KC6, E5"
-                disabled={moveMutation.isPending || isLocked || match.state !== 'in_progress'}
+                disabled={moveMutation.isPending || isLockedByOther || match.state !== 'in_progress'}
                 onKeyDown={(e) => { if (e.key === 'Enter' && moveSan.trim()) moveMutation.mutate(moveSan.trim()); }}
               />
-              <Button variant="contained" disabled={!moveSan.trim() || moveMutation.isPending || isLocked || match.state !== 'in_progress'}
+              <Button variant="contained" disabled={!moveSan.trim() || moveMutation.isPending || isLockedByOther || match.state !== 'in_progress'}
                 onClick={() => moveMutation.mutate(moveSan.trim())} sx={{ whiteSpace: 'nowrap' }}>
                 Log Move
               </Button>

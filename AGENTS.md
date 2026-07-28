@@ -39,5 +39,27 @@ React SPA for GameSphere, a multi-tenant tournament management system with live 
 - Shared `['my-org-role']` query key for role checks across components
 - `api` client (axios wrapper) for all HTTP calls
 
+## Chess
+- **ChessScore** page (`ChessScore.tsx`) — chess match scoring interface
+
+## Scripts & Tooling
+| Script | Command |
+|---|---|
+| `dev` | `vite` |
+| `build` | `tsc && vite build` |
+| `preview` | `vite preview` |
+
+- **Typechecking**: `npm run build` runs `tsc` before bundling; standalone `npx tsc --noEmit` also works
+- **Linting**: Not configured
+- **Testing**: Not configured
+
+## Build & Deployment
+- **Vite** dev server proxies `/api` to `http://localhost:3000`
+- **Docker**: Multi-stage build (build + nginx:1.27-alpine) with runtime env injection via `envsubst`
+- **PWA**: Enabled via `vite-plugin-pwa` — service worker uses `NetworkFirst` for API, `NetworkOnly` for SSE
+- **Runtime config**: `window.__ENV__` injected via `env-config.js` for `API_URL` and `GOOGLE_CLIENT_ID`
+- **CSS**: MUI + Tailwind CSS + PostCSS
+- **License**: MIT
+
 ## Technologies
-React, TypeScript, MUI, TanStack Query, React Router, DynamicForm (react-dynoform)
+React, TypeScript, MUI, Tailwind CSS, TanStack Query, React Router, axios, @react-oauth/google, react-dynoform, Vite, vite-plugin-pwa

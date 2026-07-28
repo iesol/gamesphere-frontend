@@ -43,7 +43,7 @@ export default function MatchDetail() {
   const { data: chessState } = useQuery({
     queryKey: ['chess-state', id],
     queryFn: () => api.get(`/chess/${id}/state`).then((r) => r.data),
-    enabled: !!match && match.state === 'in_progress' && tournament?.sportType === 'chess',
+    enabled: !!match && (match.state === 'in_progress' || match.state === 'completed') && tournament?.sportType === 'chess',
   });
 
   const { data: myRole } = useQuery({
@@ -82,6 +82,7 @@ export default function MatchDetail() {
     sse.addEventListener('match_end', () => {
       queryClient.invalidateQueries({ queryKey: ['cricket-state', id] });
       queryClient.invalidateQueries({ queryKey: ['cricket-events', id] });
+      queryClient.invalidateQueries({ queryKey: ['chess-state', id] });
       queryClient.invalidateQueries({ queryKey: ['match', id] });
     });
     sse.addEventListener('match_start', () => {
@@ -198,11 +199,16 @@ export default function MatchDetail() {
                 {chessState?.isCheckmate && ' · CHECKMATE'}
                 {chessState?.isDraw && ' · DRAW'}
               </Typography>
-              {match.result?.winner && (
-                <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main', mb: 2 }}>
-                  {teams?.find((t: any) => t.id === match.result.winner)?.name || 'Team'} won
-                </Typography>
-              )}
+                {match.result?.winner && match.result?.outcome !== 'draw' && (
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main', mb: 2 }}>
+                    {teams?.find((t: any) => t.id === match.result.winner)?.name || 'Team'} won
+                  </Typography>
+                )}
+                {match.result?.outcome === 'draw' && (
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.secondary', mb: 2 }}>
+                    Draw
+                  </Typography>
+                )}
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                 Moves: {(chessState?.moves || [])?.length || 0}
               </Typography>
@@ -231,7 +237,7 @@ export default function MatchDetail() {
         </Box>
       </Card>
 
-      {isChess && match.state === 'in_progress' && (
+      {isChess && (match.state === 'in_progress' || match.state === 'completed') && (
         <Card sx={{ mb: 4 }}>
           <CardHeader title="Move Log" titleTypographyProps={{ variant: 'h6' }} />
           <Box sx={{ p: 3, pt: 0 }}>
